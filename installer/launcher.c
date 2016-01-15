@@ -453,8 +453,11 @@ static int curl_download_file(private_data_t *private_data, void * curl, char *u
     /* Download file */
     int ret = private_data->curl_easy_perform(curl);
     if(ret)
-        OSFatal(url);
-
+    {
+        char buf[256];
+        __os_snprintf(buf, 256, "%d \t T%sT", ret, url);
+        OSFatal(buf);
+    }
     /* Do error checks */
     if(!file.len) {
         OSFatal(url);
@@ -479,8 +482,9 @@ static void curl_thread_callback(int argc, void *argv)
     char buf[128];
     /* find address left in ram */
     for(str = (unsigned char*)0x1A000000; str < (unsigned char*)0x20000000; str++)
-    { /* Search for /payload which indicates the current address */
-        if(*(unsigned int*)str == 0x2F706179 && *(unsigned int*)(str+4) == 0x6C6F6164)
+    {   
+        /* UPDATE: Search for "wiiuhax" 2F 77 69 69 75 68 61 78 */
+        if(*(unsigned int*)str == 0x2F776969 && *(unsigned int*)(str+4) == 0x75686178)
         {
             leaddr = (char*)str;
             while(*leaddr)
