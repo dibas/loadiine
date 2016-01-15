@@ -4,14 +4,14 @@ AS=powerpc-eabi-as
 CFLAGS=-std=gnu99 -nostdinc -fno-builtin -c
 LD=powerpc-eabi-ld
 LDFLAGS=-Ttext 1800000 --oformat binary
-OBJDUMP ?= $(PREFIX)objdump
+OBJDUMP ?= powerpc-eabi-objdump
 project	:=	.
 root:=$(CURDIR)
 build	:=	 $(root)/bin
 www_loadiine :=$(root)/../../www/loadiine
 framework:=$(root)/../../../framework
 
-all: clean setup main main532 print_stats
+all: clean setup main main540 main532 print_stats
 
 setup:
 	mkdir -p $(root)/bin/
@@ -19,6 +19,16 @@ setup:
 main:
 	cd ../ && make clean
 	cd ../ && make
+
+main540:
+	$(CC) $(CFLAGS) -DVER=540 $(project)/launcher.c
+	$(AS) -mregnames -o kernel_patches.o $(project)/kernel_patches.S 
+	#-Wa,-a,-ad
+	cp -r $(root)/*.o $(build)
+	rm $(root)/*.o
+	$(LD) $(LDFLAGS) -s -o $(build)/code540.bin $(build)/launcher.o `find $(build) -name "*.o" ! -name "launcher.o"`
+	cp -rf ../*.elf $(www_loadiine)
+	cp -rf ../*.elf ../www/loadiine
 
 main532:
 	$(CC) $(CFLAGS) -DVER=532 $(project)/launcher.c
