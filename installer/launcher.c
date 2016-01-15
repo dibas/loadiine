@@ -5,7 +5,7 @@
 #include "../../libwiiu/src/vpad.h"
 #include "../../libwiiu/src/socket.h"
 
-#if VER == 532
+#if VER == 532 || VER == 540
     #define CODE_RW_BASE_OFFSET     0xBC000000
     #define DATA_RW_BASE_OFFSET     0
 
