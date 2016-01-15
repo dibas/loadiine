@@ -140,21 +140,6 @@ void _start()
         OSDynLoad_FindExport(coreinit_handle, 0, "OSAllocFromSystem", &OSAllocFromSystem);
         OSDynLoad_FindExport(coreinit_handle, 0, "OSFreeToSystem", &OSFreeToSystem);
 
-        /* Send restart signal to get rid of uneeded threads */
-        /* Cause the other browser threads to exit */
-        int fd = IM_Open();
-        void *mem = OSAllocFromSystem(0x100, 64);
-        memset(mem, 0, 0x100);
-
-        /* Sets wanted flag */
-        IM_SetDeviceState(fd, mem, 3, 0, 0);
-        IM_Close(fd);
-        OSFreeToSystem(mem);
-
-        /* Waits for thread exits */
-        unsigned int t1 = 0x1FFFFFFF;
-        while(t1--) ;
-
         /* Prepare for thread startups */
         int (*OSCreateThread)(OSThread *thread, void *entry, int argc, void *args, unsigned int stack, unsigned int stack_size, int priority, unsigned short attr);
         int (*OSResumeThread)(OSThread *thread);
@@ -182,10 +167,6 @@ void _start()
         /* Schedule it for execution */
         OSResumeThread(thread);
 
-        /* while we are downloading let the user select his IP stuff */
-        unsigned int ip_address = 0;
-        int result = show_ip_selection_screen(coreinit_handle, &ip_address);
-
         // Keep this main thread around for ELF loading
         // Can not use OSJoinThread, which hangs for some reason, so we use a detached one and wait for it to terminate
         while(OSIsThreadTerminated(thread) == 0)
@@ -205,6 +186,25 @@ void _start()
         /* Free thread memory and stack */
         private_data.MEMFreeToDefaultHeap(thread);
         private_data.MEMFreeToDefaultHeap(stack);
+
+        /* Send restart signal to get rid of uneeded threads */
+        /* Cause the other browser threads to exit */
+        int fd = IM_Open();
+        void *mem = OSAllocFromSystem(0x100, 64);
+        memset(mem, 0, 0x100);
+
+        /* Sets wanted flag */
+        IM_SetDeviceState(fd, mem, 3, 0, 0);
+        IM_Close(fd);
+        OSFreeToSystem(mem);
+
+        /* Waits for thread exits */
+        unsigned int t1 = 0x1FFFFFFF;
+        while(t1--) ;
+
+        /* while we are downloading let the user select his IP stuff */
+        unsigned int ip_address = 0;
+        int result = show_ip_selection_screen(coreinit_handle, &ip_address);
 
         /* Install our ELF files */
         if(result){
