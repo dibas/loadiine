@@ -438,6 +438,12 @@ static int curl_write_data_callback(void *buffer, int size, int nmemb, void *use
 #define CURLOPT_WRITEFUNCTION 20011
 #define CURLINFO_RESPONSE_CODE 0x200002
 
+#define CURL_GLOBAL_SSL (1<<0)
+#define CURL_GLOBAL_WIN32 (1<<1)
+#define CURL_GLOBAL_ALL (CURL_GLOBAL_SSL|CURL_GLOBAL_WIN32)
+#define CURL_GLOBAL_NOTHING 0
+#define CURL_GLOBAL_DEFAULT CURL_GLOBAL_ALL
+
 static int curl_download_file(private_data_t *private_data, void * curl, char *url, unsigned char **out_buffer)
 {
     file_struct_t file;
@@ -499,15 +505,45 @@ static void curl_thread_callback(int argc, void *argv)
     if(leaddr == (char*)0)
         OSFatal("URL not found");
 
-    /* Acquire and setup libcurl */
+    /*  Turn on Network */
+    unsigned int nn_ac_handle;
+    OSDynLoad_Acquire("nn_ac.rpl", &nn_ac_handle);
+
+    int(*ACInitialize)();
+    int(*ACGetStartupId) (unsigned int *id);
+    int(*ACConnectWithConfigId) (unsigned int id);
+
+    OSDynLoad_FindExport(nn_ac_handle, 0, "ACInitialize", &ACInitialize);
+    OSDynLoad_FindExport(nn_ac_handle, 0, "ACGetStartupId", &ACGetStartupId);   
+    OSDynLoad_FindExport(nn_ac_handle, 0, "ACConnectWithConfigId",&ACConnectWithConfigId);
+
+    ACInitialize();
+    int myid;
+    ACGetStartupId(&myid);
+    ACConnectWithConfigId(myid);   
+
+    /*  Initialize Sockets  */
+
+    unsigned int nsysnet_handle;
+    OSDynLoad_Acquire("nsysnet", &nsysnet_handle);
+    int(*socket_lib_init)();
+    OSDynLoad_FindExport(nsysnet_handle, 0, "socket_lib_init", &socket_lib_init);
+    socket_lib_init();
+
+
+    /* Initialize Curl */
     unsigned int libcurl_handle;
     OSDynLoad_Acquire("nlibcurl", &libcurl_handle);
 
+    int(*curl_global_init)(int opts);
+    OSDynLoad_FindExport(libcurl_handle, 0, "curl_global_init", &curl_global_init);
     OSDynLoad_FindExport(libcurl_handle, 0, "curl_easy_init", &private_data->curl_easy_init);
     OSDynLoad_FindExport(libcurl_handle, 0, "curl_easy_setopt", &private_data->curl_easy_setopt);
     OSDynLoad_FindExport(libcurl_handle, 0, "curl_easy_perform", &private_data->curl_easy_perform);
     OSDynLoad_FindExport(libcurl_handle, 0, "curl_easy_getinfo", &private_data->curl_easy_getinfo);
     OSDynLoad_FindExport(libcurl_handle, 0, "curl_easy_cleanup", &private_data->curl_easy_cleanup);
+
+    curl_global_init(CURL_GLOBAL_ALL);
 
     void *curl = private_data->curl_easy_init();
     if(!curl) {
