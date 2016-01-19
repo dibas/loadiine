@@ -489,8 +489,8 @@ static void curl_thread_callback(int argc, void *argv)
     /* find address left in ram */
     for(str = (unsigned char*)0x1A000000; str < (unsigned char*)0x20000000; str++)
     {   
-        /* UPDATE: Search for "wiiuhax" 2F 77 69 69 75 68 61 78 */
-        if(*(unsigned int*)str == 0x2F776969 && *(unsigned int*)(str+4) == 0x75686178)
+        /* UPDATE: Search for "?sysver=" 3F 73 79 73 76 65 72 3D */
+        if(*(unsigned int*)str == 0x3F737973 && *(unsigned int*)(str+4) == 0x7665723D)
         {
             leaddr = (char*)str;
             while(*leaddr)
@@ -505,7 +505,7 @@ static void curl_thread_callback(int argc, void *argv)
     if(leaddr == (char*)0)
         OSFatal("URL not found");
 
-    /*  Turn on Network */
+    /*  Initialize Network */
     unsigned int nn_ac_handle;
     OSDynLoad_Acquire("nn_ac.rpl", &nn_ac_handle);
 
@@ -529,7 +529,6 @@ static void curl_thread_callback(int argc, void *argv)
     int(*socket_lib_init)();
     OSDynLoad_FindExport(nsysnet_handle, 0, "socket_lib_init", &socket_lib_init);
     socket_lib_init();
-
 
     /* Initialize Curl */
     unsigned int libcurl_handle;
